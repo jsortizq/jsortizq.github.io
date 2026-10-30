@@ -254,7 +254,7 @@ button{font:inherit;color:inherit}
 .hs-bot{bottom:-1%;left:50%;transform:translateX(-50%);color:var(--faint)}
 .hs-node{top:60%;right:1%;color:var(--accent)}
 
-.card{position:relative;min-width:0;align-self:center;max-height:100%;overflow:auto;overscroll-behavior:contain;background:var(--glass-card);-webkit-backdrop-filter:blur(22px) saturate(140%);backdrop-filter:blur(22px) saturate(140%);border:1px solid var(--glass-border);border-radius:18px;padding:clamp(20px,2.2vw,28px);box-shadow:0 30px 80px -34px var(--shadow),0 0 70px -40px var(--accent);scrollbar-width:thin;will-change:transform}
+.card{position:relative;min-width:0;align-self:center;max-height:100%;overflow:hidden;background:var(--glass-card);-webkit-backdrop-filter:blur(22px) saturate(140%);backdrop-filter:blur(22px) saturate(140%);border:1px solid var(--glass-border);border-radius:18px;padding:clamp(20px,2.2vw,28px);box-shadow:0 30px 80px -34px var(--shadow),0 0 70px -40px var(--accent);scrollbar-width:thin;will-change:transform}
 .card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
 .card-body{transition:opacity .24s ease,transform .24s var(--ease)}
 .card.swap .card-body{opacity:0;transform:translateY(10px)}
@@ -297,15 +297,17 @@ button{font:inherit;color:inherit}
   .mi-name{font-size:14px;white-space:nowrap}
   .hotspot{width:auto;height:100%;max-width:calc(100% - 32px);min-height:0;align-self:center}
   .hs-node{display:none}
-  .card{margin:0 max(16px,env(safe-area-inset-left,0px));align-self:end;max-height:calc(var(--vh) * .55)}
+  .card{margin:0 max(16px,env(safe-area-inset-left,0px));align-self:end;max-height:none;padding:18px}
+  .card .desc{display:none}
+  .specs{gap:10px;margin-top:14px}
+  .card-actions{margin-top:16px}
   .card h3{font-size:1.32rem}
   .card-actions .btn-ghost{display:none}
   .cta-main{font-size:13.5px}
 }
-@media (max-width:900px) and (max-height:720px){
+@media (max-width:900px) and (max-height:760px){
   .apps-inner{grid-template-rows:auto minmax(0,1fr)}
   .hotspot{display:none}
-  .card{max-height:100%}
 }
 
 /* ───────── track + after ───────── */
@@ -612,7 +614,7 @@ const MAIL = 'jsortizq@gmail.com';
 
 const HERO_VH = 0.3;   // el título se mantiene hasta pasar a servicios
 const FADE_VH = 0.6;
-const STEP_VH = 0.6;   // por servicio
+const STEP_VH = 0.6;   // por servicio (en celular se usa 0.8)
 const HOLD_VH = 0.4;
 const LERP = 0.115;
 
@@ -772,12 +774,13 @@ const video = $('#heroVideo');
 
 /* ───────────────────────── medidas ───────────────────────── */
 let vh = window.innerHeight, vw = window.innerWidth;
+const stepVH = () => (vw <= 900 ? .8 : STEP_VH);
 const zoneStart = () => (HERO_VH + FADE_VH) * vh;
-const stepPx = () => STEP_VH * vh;
+const stepPx = () => stepVH() * vh;
 function setVH() {
   vh = window.innerHeight; vw = window.innerWidth;
   root.style.setProperty('--vh', vh + 'px');
-  track.style.height = ((HERO_VH + FADE_VH + STEPS * STEP_VH + HOLD_VH + 1) * vh) + 'px';
+  track.style.height = ((HERO_VH + FADE_VH + STEPS * stepVH() + HOLD_VH + 1) * vh) + 'px';
 }
 setVH();
 window.addEventListener('resize', () => {
@@ -1089,19 +1092,6 @@ function goStep(n) {
   lockUntil = performance.now() + 700;
   window.scrollTo({ top: Math.round(zoneStart() + n * stepPx()), behavior: reduceMotion ? 'auto' : 'smooth' });
 }
-// al soltar el scroll dentro de los servicios, se alinea con el servicio más cercano
-let snapTimer = 0;
-window.addEventListener('scroll', () => {
-  clearTimeout(snapTimer);
-  snapTimer = setTimeout(() => {
-    if (performance.now() < lockUntil) return;
-    const y = window.scrollY, r = (y - zoneStart()) / stepPx();
-    if (r < -.02 || r > STEPS + .02) return;
-    const n = clamp(Math.round(r), 0, STEPS);
-    if (Math.abs(y - (zoneStart() + n * stepPx())) > 3) goStep(n);
-  }, 220);
-}, { passive:true });
-
 navServ.addEventListener('click', () => goStep(0));
 $('#heroServ').addEventListener('click', () => goStep(0));
 $('#navContact').addEventListener('click', e => { e.preventDefault(); $('#contacto').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block:'center' }); });
@@ -1117,10 +1107,10 @@ function frame(now) {
   heroP += (target - heroP) * K;
   if (Math.abs(target - heroP) < 1e-4) heroP = target;
   const fade = clamp((s - HERO_VH) / FADE_VH, 0, 1);
-  const stepF = clamp((s - HERO_VH - FADE_VH) / STEP_VH, 0, STEPS);
+  const stepF = clamp((s - HERO_VH - FADE_VH) / stepVH(), 0, STEPS);
 
   // pasado el último servicio, las capas se ocultan y solo queda la red de fondo
-  const past = s > HERO_VH + FADE_VH + STEPS * STEP_VH + HOLD_VH + 1.02;
+  const past = s > HERO_VH + FADE_VH + STEPS * stepVH() + HOLD_VH + 1.02;
   if (past === stageOn) { stageOn = !past; apps.style.display = stageOn ? '' : 'none'; hero.style.display = stageOn ? '' : 'none'; }
 
   if (stageOn) {
